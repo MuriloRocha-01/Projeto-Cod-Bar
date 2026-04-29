@@ -1,0 +1,76 @@
+export type InfoTabelaType ={
+    etapa: string,
+    situacao: string,
+    operador: string,
+    data: string,
+    hora: string,
+    tempo: string,
+
+}
+
+export const InfoTabela = [
+  {
+    etapa: 'Trifilação',
+    situacao: 'Em andamento ',
+    operador: 'Josemar',
+    data: '30/08/2026',
+    hora: '10:45',
+    tempo: '45min',
+  },
+  {
+    etapa: 'em andamento ',
+    situacao: 'Em andamento ',
+    operador: 'Josemar',
+    data: '30/08/2026',
+    hora: '10:45',
+    tempo: '45min',
+  },
+  {
+    etapa: 'em andamento ',
+    situacao: 'em andamento ',
+    operador: 'Josemar',
+    data: '30/08/2026',
+    hora: '10:45',
+    tempo: '45min',
+  },
+  {
+    etapa: 'em andamento ',
+    situacao: 'em andamento ',
+    operador: 'Josemar',
+    data: '30/08/2026',
+    hora: '10:45',
+    tempo: '45min',
+  },
+  {
+    etapa: 'em andamento ',
+    situacao: 'em andamento ',
+    operador: 'Josemar',
+    data: '30/08/2026',
+    hora: '10:45',
+    tempo: '45min',
+  },
+  {
+    etapa: 'em andamento ',
+    situacao: 'em andamento ',
+    operador: 'Josemar',
+    data: '30/08/2026',
+    hora: '10:45',
+    tempo: '45min',
+  },
+  {
+    etapa: 'em andamento ',
+    situacao: 'em andamento ',
+    operador: 'Josemar',
+    data: '30/08/2026',
+    hora: '10:45',
+    tempo: '45min',
+  },
+  {
+    etapa: 'em andamento ',
+    situacao: 'em andamento ',
+    operador: 'Josemar',
+    data: '30/08/2026',
+    hora: '10:45',
+    tempo: '45min',
+  },
+];

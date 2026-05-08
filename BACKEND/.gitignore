@@ -1,0 +1,6 @@
+#node modeules 
+node_modules/
+dist/
+
+#arquivo .env
+.env

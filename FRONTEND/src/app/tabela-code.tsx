@@ -5,32 +5,112 @@ import {
   TouchableOpacity,
   ScrollView,
   useWindowDimensions,
+  Modal,
+  Alert,
 } from 'react-native';
-
+import { useEffect, useState } from 'react';
 import { useLocalSearchParams } from 'expo-router';
 import { router } from 'expo-router';
 import { useCodbar } from '@/context/CodbarContext';
 import Slider from '@/components/Slider';
 import { InfoTabela } from '@/data/SliderData';
+import { useChangeEtapa } from '@/hooks/button.hook';
 
 function Tabela_Code() {
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
+  const { postIniciar, postFinalizar, postPausar, postRetomar, postPularEtapa } = useChangeEtapa();
 
   const params = useLocalSearchParams();
   const nomeOperador = params.nomeOperador as string;
   const nomeProduto = params.nomeProduto as string;
-  const { codBar, senha, numpcf,posicao, limparContext } = useCodbar();
+  const { codBar, senha, numpcf, posicao, limparContext } = useCodbar();
 
   const primeiroItem = InfoTabela[0];
+  const etapaAtual = InfoTabela.find((item) => item.posicao === posicao) || primeiroItem;
 
-  const etapaAtual = InfoTabela.find(item => item.posicao === posicao) || primeiroItem;
+  const cadmot = 0;
 
-  console.log('etapa', etapaAtual)
-  const handleConfirm = () => {
-    limparContext();
-    router.navigate('/');
-  };
+  const [modalPausaVisible, setModalPausaVisible] = useState(false);
+
+
+  function handleIniciar() {
+    if (!verificarIniciar()) return;
+
+    postIniciar(etapaAtual.numpcf, etapaAtual.posicao, nomeOperador, cadmot)
+      .then(() => {
+        Alert.alert('Sucesso', 'Produção iniciada!');
+      })
+      .catch(() => Alert.alert('Erro', 'Não foi possível iniciar ' ));
+  }
+
+  function handlePausar(cadmot: number) {
+    postPausar(etapaAtual.numpcf, etapaAtual.posicao, nomeOperador, cadmot)
+      .then(() => {
+        Alert.alert('Sucesso', 'Etapa pausada.');
+      })
+      .catch(() => Alert.alert('Erro', 'Falha ao pausar.'));
+  }
+
+  function handleRetomar() {
+    if (etapaAtual.situac !== 'PAUSADA') {
+      Alert.alert('Aviso', 'Só é possível retomar uma etapa que está pausada.');
+      return;
+    }
+
+    postRetomar(etapaAtual.numpcf, etapaAtual.posicao, nomeOperador, cadmot)
+      .then(() => {
+        Alert.alert('Sucesso', 'Produção retomada!');
+      })
+      .catch(() => Alert.alert('Erro', 'Falha ao retomar produção.'));
+  }
+
+  function handleFinalizar(){
+    postFinalizar(etapaAtual.numpcf, etapaAtual.posicao, nomeOperador, cadmot)
+      .then(() => {
+        Alert.alert('Sucesso', 'Produção retomada!');
+      })
+      .catch(() => Alert.alert('Erro', 'Falha ao retomar produção.'));
+  }
+  function handleClose(){
+    
+  }
+
+  function handlePularEtapa(){
+    if (etapaAtual.situac !== 'FINALIZADA') {
+      Alert.alert('Aviso', 'Só é possível pular uma etapa ja finalizada!');
+      return;
+    }
+
+    postPularEtapa(etapaAtual.numpcf, etapaAtual.posicao, nomeOperador, cadmot)
+      .then(() => {
+        Alert.alert('Sucesso', 'Produção retomada!');
+      })
+      .catch(() => Alert.alert('Erro', 'Falha ao retomar produção.'));
+  }
+
+
+  function verificarIniciar() {
+    if (etapaAtual.situac === 'FINALIZADA') {
+      Alert.alert('Erro', 'Esta etapa já foi finalizada.');
+      return false;
+    }
+    if (etapaAtual.situac === 'EM PRODUÇÃO') {
+      Alert.alert('Aviso', 'A produção já está em produção.');
+      return false;
+    }
+    return true; 
+  }
+
+  function verificarPausar() {
+    if (etapaAtual.situac === 'EM PRODUÇÃO') {
+      setModalPausaVisible(true);
+    } else {
+      Alert.alert('Aviso', 'Só é possível pausar se a etapa estiver EM PRODUÇÃO!');
+    }
+  }
+  //Chamar o useEffect quando estes valores mudarem
+  useEffect(() => {}, [etapaAtual.descri, etapaAtual.situac, etapaAtual.posicao]);
 
   const conteudo_tabela = (
     <View className="flex-1 px-12 py-16 mobile:py-12">
@@ -51,7 +131,6 @@ function Tabela_Code() {
             className="rounded-xl bg-white px-2 py-5 text-center text-[1.2rem] shadow-lg mobile:py-4 mobile:text-[1rem] tablet:text-[1.1rem] "
             placeholder=""
             placeholderTextColor="#414141"
-            
             value={codBar}
             readOnly
           />
@@ -129,19 +208,25 @@ function Tabela_Code() {
       {/*Buttons*/}
 
       <View className="mt-20 flex-row justify-between tablet:mt-16">
-        <TouchableOpacity className="m-1 h-12 flex-1 items-center justify-center rounded-md bg-primary">
+        <TouchableOpacity
+          className="m-1 h-12 flex-1 items-center justify-center rounded-md bg-primary"
+          onPress={handleIniciar}>
           <Text className="text-center font-semibold text-[1.2rem] text-white mobile:text-[1rem]">
             Iniciar
           </Text>
         </TouchableOpacity>
 
-        <TouchableOpacity className="m-1 h-12 flex-1 items-center justify-center rounded-md bg-primary">
+        <TouchableOpacity
+          className="m-1 h-12 flex-1 items-center justify-center rounded-md bg-primary"
+          onPress={verificarPausar}>
           <Text className="text-center font-semibold text-[1.2rem] text-white mobile:text-[1rem]">
             Pausar
           </Text>
         </TouchableOpacity>
 
-        <TouchableOpacity className="m-1 h-12 flex-1 items-center justify-center rounded-md bg-primary">
+        <TouchableOpacity
+          className="m-1 h-12 flex-1 items-center justify-center rounded-md bg-primary"
+          onPress={handleRetomar}>
           <Text className="text-center font-semibold text-[1.2rem] text-white mobile:text-[1rem]">
             Retomar
           </Text>
@@ -151,27 +236,29 @@ function Tabela_Code() {
       <View className="flex-row">
         <TouchableOpacity
           className="m-1 h-12 flex-1 items-center justify-center rounded-md bg-primary"
-          onPress={handleConfirm}>
+          onPress={handleFinalizar}>
           <Text className="text-center font-semibold text-[1.2rem] text-white mobile:text-[1rem]">
             Finalizar
           </Text>
         </TouchableOpacity>
 
-        <TouchableOpacity className="m-1 h-12 flex-1 items-center justify-center rounded-md bg-primary">
+        <TouchableOpacity className="m-1 h-12 flex-1 items-center justify-center rounded-md bg-primary"
+        onPress={handlePularEtapa}>
           <Text className="text-center font-semibold text-[1.2rem] text-white mobile:text-[1rem]">
             Pular Etapa
           </Text>
         </TouchableOpacity>
 
-        <TouchableOpacity className="m-1 h-12 flex-1 items-center justify-center rounded-md bg-primary">
+        <TouchableOpacity className="m-1 h-12 flex-1 items-center justify-center rounded-md bg-primary"
+        onPress={handleClose}>
           <Text className="text-center font-semibold text-[1.2rem] text-white mobile:text-[1rem]">
-            Limpar
+            Sair
           </Text>
         </TouchableOpacity>
       </View>
 
       <ScrollView
-        className="hidden mobile:flex mt-8 rounded-xl bg-white drop-shadow-lg tablet:mt-12"
+        className="mt-8 hidden rounded-xl bg-white drop-shadow-lg mobile:flex tablet:mt-12"
         stickyHeaderIndices={[0]}>
         <View className="flex flex-row bg-white pt-2 backdrop-blur-md">
           <Text className="flex-1 border-b-[0.4px] border-[#8E8681]/60 pb-3 text-center font-semibold text-[1.1rem] text-text_primary">
@@ -226,6 +313,42 @@ function Tabela_Code() {
           </Text>
         </TouchableOpacity>
       </View>
+
+      <Modal
+        visible={modalPausaVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setModalPausaVisible(false)}>
+        <View className="flex-1 items-center justify-center bg-black/20 px-6">
+          <View className="w-full rounded-2xl bg-white p-6 shadow-xl">
+            <Text className="mb-4 font-bold text-xl text-[#414141]">
+              Selecione o motivo da pausa:
+            </Text>
+
+            <View className="gap-2">
+              {[
+                { id: 1, txt: 'Ida ao banheiro' },
+                { id: 2, txt: 'Priorizando outro PCF' },
+                { id: 3, txt: 'Troca de fitas' },
+                { id: 4, txt: 'Manutenção da máquina' },
+                { id: 5, txt: 'Almoço' },
+                { id: 6, txt: 'Fim do expediente' },
+              ].map((item) => (
+                <TouchableOpacity
+                  key={item.id}
+                  className="rounded-lg bg-gray-100 p-4 active:bg-gray-200"
+                  onPress={() => handlePausar(item.id)}>
+                  <Text className="text-center font-medium">{item.txt}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <TouchableOpacity className="mt-6 p-2" onPress={() => setModalPausaVisible(false)}>
+              <Text className="text-center font-bold text-red-500">Cancelar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 

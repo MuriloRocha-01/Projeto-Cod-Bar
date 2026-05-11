@@ -9,7 +9,8 @@ export class TabelaRepository {
       throw new Error("❌ Conexão com o banco de dados não estabelecida");
     }
 
-    const result = await pool.request().input("numpcf", sql.Int, numpcf)
+    const result = await pool.request()
+    .input("numpcf", sql.Int, numpcf)
       .query(`SELECT DISTINCT
                 c.numpcf,
                 c.posicao,
@@ -26,7 +27,8 @@ export class TabelaRepository {
                 ON e.codigo = ce.etapa
             LEFT OUTER JOIN tempo_pcf op 
                 ON c.numpcf = op.numpcf AND c.posicao = op.posicao
-            WHERE c.numpcf = @numpcf`
+            WHERE c.numpcf = @numpcf
+            `
           );
     return result.recordset;
   }

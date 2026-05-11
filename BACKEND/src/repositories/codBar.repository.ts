@@ -16,11 +16,11 @@ export class CodBarRepository {
 
     const result = await pool.request()
       .input("numpcf", sql.Int, numpcf)
-      .input("posicao", sql.Int, posicao).query(`
-                SELECT numpcf from cadpcf_etapas
-                WHERE cadpcf_etapas.numpcf = @numpcf
-                AND cadpcf_etapas.posicao = @posicao`
-                
+      .input("posicao", sql.Int, posicao)
+      .query(`
+              SELECT numpcf from cadpcf_etapas
+              WHERE cadpcf_etapas.numpcf = @numpcf
+              AND cadpcf_etapas.posicao = @posicao`  
             );
 
     return result.recordset[0];

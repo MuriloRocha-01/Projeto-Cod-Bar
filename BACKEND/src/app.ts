@@ -5,7 +5,7 @@ import dotenv from 'dotenv'; // 1. Importe o dotenv
 import Operadorrouter from './routes/operador.route.js';
 import CodBarrouter from './routes/codbar.route.js';
 import Tabelarouter from './routes/tabela.route.js';
-
+import ButtonRouter from './routes/buttons.route.js';
 const app = express();
 
 dotenv.config(); 
@@ -21,6 +21,8 @@ app.use('/operador', Operadorrouter);
 app.use('/codbar', CodBarrouter);
 
 app.use('/tabela', Tabelarouter);
+
+app.use('/button', ButtonRouter)
 
 app.use((req,res) =>{
     res.status(404).json({

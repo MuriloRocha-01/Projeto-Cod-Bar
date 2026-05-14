@@ -1,11 +1,11 @@
-import { View, Text, TextInput, TouchableOpacity, Alert, Modal } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Alert, Modal, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { useCodbar } from '@/context/CodbarContext';
 import { useState } from 'react';
 import { router } from 'expo-router';
 import { useSenha } from '@/hooks/senha.hook';
 import { useTabela } from '@/hooks/tabela.hook';
-import { setSliderData } from '@/data/SliderData';
+
 
 function Code_bar_Senha() {
   const { getOperador } = useSenha();
@@ -20,13 +20,13 @@ function Code_bar_Senha() {
 
   const { SaveContext } = useCodbar();
 
-  const handleConfirm = () => {
-    if (!passwordInput) {
+  const handleConfirm = (password:string) => {
+    if (!password) {
       Alert.alert('É necessario que você digite a senha ');
       return;
     } else {
       setLoading(true);
-      getOperador(passwordInput)
+      getOperador(password)
         .then((response) => {
           if (!response) {
             Alert.alert('Senha incorreta, tente novamente');
@@ -35,16 +35,18 @@ function Code_bar_Senha() {
           //numpcf estou pegando do SELECT da tabela, e a posicao estou pegando do codigo de barras
           const numpcf = Number(valornumpcf);
           const posicao = Number(codBar.slice(-2));
-          SaveContext(codBar, passwordInput, numpcf, posicao);
+          SaveContext(codBar, password, numpcf, posicao);
 
           //Pegar a tabela e redirecionar para a tela de tabela
           montandoTabela(numpcf, response);
         })
         .catch((error) => {
-          Alert.alert('Erro ao obter operador, tente novamente', error.message);
+          Alert.alert('Operador não encontrado, tente novamente', error.message);
           return;
         }).finally(()=>{
-          setLoading(false)
+          setTimeout(() => {
+          setLoading(false); // Desativa o loading
+          }, 2000);
         });
     }
   };
@@ -57,17 +59,16 @@ function montandoTabela(numpcf: number, response: any) {
           setLoading(false);
           return;
         }
-        setSliderData(tabela);
         // CHAMA O NOME DO PRODUTO E RETORNA A PROMISSE
         return getNome(numpcf).then((produtoResponse) => {
           const nomeProduto = produtoResponse?.nompro?.trim() || 'Não identificado';
           const nomeOperador = response?.operador?.trim() || 'Operador não identificado';
-
           router.push({
             pathname: '/tabela-code',
             params: {
               nomeOperador: nomeOperador,
               nomeProduto: nomeProduto,
+              tabelaInicial: JSON.stringify(tabela)
             },
           });
         });
@@ -91,19 +92,20 @@ function montandoTabela(numpcf: number, response: any) {
         secureTextEntry={true}
         keyboardType="numeric"
         value={passwordInput}
-        onChangeText={setPasswordInput}
+        onChangeText={(text)=>{
+          const apenasNumeros = text.replace(/[^0-9]/g, '');
+          setPasswordInput(apenasNumeros);
+          if(apenasNumeros.length === 4){
+            handleConfirm(apenasNumeros)
+          }
+        }}
       />
 
-      <TouchableOpacity
-        className="h-12 w-52 items-center justify-center rounded-md bg-primary"
-        onPress={handleConfirm}>
-        <Text className="text-center font-bold text-lg text-white">Confirmar</Text>
-      </TouchableOpacity>
       <Text>Codigo de barras : {codBar} </Text>
 
-      <Modal visible={loading} transparent={true} animationType="fade">
-        <View className="flex-1 items-center justify-center gap-6 bg-white">
-          <Text className="text-bold text-center text-xl text-[#414141]">Carregando...</Text>
+      <Modal visible={loading} transparent={true} animationType="fade" statusBarTranslucent={true}>
+        <View className="flex-1 items-center justify-center bg-white">
+          <ActivityIndicator size="large" color="#000" />
         </View>
       </Modal>
     </View>

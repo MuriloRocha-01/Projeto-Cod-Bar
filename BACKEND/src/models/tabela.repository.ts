@@ -1,10 +1,11 @@
 export interface IOperadorTabela {
-    descri: string;    // Nome da etapa (Solda, Corte, etc)
-    situac: string;    // 'F' para finalizada, 'A' para aberto
+    descri: string;    
+    situac: string;    
     operador: string | null;
-    data: string;      // O SQL devolve como String formatada ou Date
-    hora: string;      // O SQL devolve como String
-    duracao: number;   // O resultado do DATEDIFF
+    data: string;      
+    hora: string;      
+    duracao: number;
+    etapa:number;   
 }
 
 export interface INomeProduto {

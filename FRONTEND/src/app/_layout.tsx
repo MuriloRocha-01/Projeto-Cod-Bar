@@ -9,6 +9,7 @@ export default function Layout(){
                 <Stack.Screen name="index"/>
                 <Stack.Screen name="code-bar-senha"/>
                 <Stack.Screen name="tabela-code"/>
+                <Stack.Screen name="montando-pcf"/>
             </Stack>
         </CodbarProvider>
     )

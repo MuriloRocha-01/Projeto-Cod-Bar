@@ -1,30 +1,32 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, ViewToken } from 'react-native';
 import Animated, { 
   useSharedValue, 
   useAnimatedScrollHandler 
 } from 'react-native-reanimated';
-import { useFocusEffect } from 'expo-router';
+import { ItemTabela } from '@/data/SliderData'; 
 
-// Imports dos seus arquivos
-import { InfoTabela } from '@/data/SliderData';
 import SliderItem from './SliderItem';
 import Pagination from './Pagination';
 
-export default function Slider() {
-  // Estado local para forçar o React a renderizar quando os dados globais mudarem
-  const [dadosLocais, setDadosLocais] = useState([...InfoTabela]);
-  const [paginationIndex, setPaginationIndex] = useState(0);
+// 1. Declaramos que o Slider agora obrigatoriamente recebe os dados da tela principal
+type SliderProps = {
+  dados: ItemTabela[];
+};
 
+export default function Slider({ dados }: SliderProps) {
+  // 2. Inicializamos o estado local diretamente com as propriedades recebidas
+  const [dadosLocais, setDadosLocais] = useState<ItemTabela[]>(dados);
+  const [paginationIndex, setPaginationIndex] = useState(0);
   const scrollX = useSharedValue(0);
 
-  // Hook que dispara toda vez que a tela de Tabela ganha foco
-  useFocusEffect(
-    useCallback(() => {
-      // Atualizamos o estado local com o conteúdo atual do arquivo de dados
-      setDadosLocais([...InfoTabela]);
-    }, [])
-  );
+  // 3. Este useEffect monitora quando a tela de tabelas atualizar o banco de dados. 
+  // No momento em que ela mudar, o Slider atualiza o carrossel no mesmo milissegundo.
+  useEffect(() => {
+    if (dados) {
+      setDadosLocais(dados);
+    }
+  }, [dados]);
 
   const onScrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
@@ -42,7 +44,6 @@ export default function Slider() {
     }
   });
 
-  // Caso os dados ainda não tenham chegado da API
   if (!dadosLocais || dadosLocais.length === 0) {
     return (
       <View className="mt-8 h-[30vh] items-center justify-center bg-white rounded-xl mx-4 shadow-sm">

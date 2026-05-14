@@ -1,5 +1,5 @@
 import { CameraView, useCameraPermissions, BarcodeScanningResult } from 'expo-camera';
-import { useState, useRef } from 'react';
+import { useEffect, useState} from 'react';
 import { useCodBar } from '@/hooks/codBar.hook';
 import {
   Alert,
@@ -19,21 +19,31 @@ function Index() {
   const [loading, setLoading] = useState(false);
   const [permission, requestPermission] = useCameraPermissions();
   const [modalIsVisible, setModalIsVisible] = useState(false);
-  const codBar = useRef(false);
 
+  const [numpcf, setNumPcf] = useState(0);
+  const [codBar, setCodBar] = useState(0);
+
+
+  useEffect(() => {
+    if (permission?.granted) {
+      setModalIsVisible(true);
+    }else{
+      setModalIsVisible(false);
+    }
+  }, [permission]); // Sempre que o status da permissão mudar, ele verifica se deve abrir o modal
   // Pegamos a largura e altura da tela para calcular o centro
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
 
-  const handleScan = ({ type, data, bounds }: BarcodeScanningResult) => {
-    if (!data || codBar.current) return;
+  const handleScan = ({ data, bounds }: BarcodeScanningResult) => {
+    if (!data ) return;
 
     const { origin, size } = bounds;
 
     const barcodeCenterX = origin.x + size.width / 2;
     const barcodeCenterY = origin.y + size.height / 2;
 
-    const scanAreaHeight = 208;
-    const scanAreaWidth = screenWidth * 0.8;
+    const scanAreaHeight = 200;
+    const scanAreaWidth = 300;
 
     const minX = (screenWidth - scanAreaWidth) / 2;
     const maxX = minX + scanAreaWidth;
@@ -48,30 +58,27 @@ function Index() {
     ) {
 
 
-      setLoading(false);
       setModalIsVisible(false);
       setLoading(true);
-      codBar.current = true;
 
       getCodBar(data).then((response) => {
         if (!response) {
         Alert.alert('Erro', 'Código não encontrado');
-        codBar.current = false; // Importante resetar aqui se falhar
         return;
       }
 
-      const numpcf = response?.numpcf;
-          Alert.alert('Sucesso', `Código Confirmado! ${codBar} `, [
-          {
-            onPress: () => {
-              codBar.current = false;
-              router.push({
+      setNumPcf(response?.numpcf);
+      setCodBar(Number(data));
+      const pcfDireto = response?.numpcf;
+      const codBarDireto = data;
+
+      setTimeout(() => {
+      setLoading(false); // Desativa o loading
+      }, 3000);
+          router.push({
                 pathname: '/code-bar-senha',
-                params: { code: numpcf, codBar: data }, // Passa o código como parâmetro para a próxima tela
-              });
-            },
-          },
-        ]);
+                params: { code: pcfDireto, codBar: codBarDireto },
+              })
       });
     }
   };
@@ -99,13 +106,6 @@ function Index() {
 
   return (
     <View className="flex-1 items-center justify-center">
-      <Text className="mb-5">Permissão para acessar leitor </Text>
-      <TouchableOpacity
-        onPress={() => setModalIsVisible(true)}
-        className="rounded-lg bg-primary px-5 py-3">
-        <Text className="text-center font-bold text-white">Abrir Leitor</Text>
-      </TouchableOpacity>
-
       <Modal visible={modalIsVisible} animationType="slide">
         <View style={{ flex: 1 }}>
           <CameraView
@@ -116,10 +116,10 @@ function Index() {
 
           <View style={StyleSheet.absoluteFill}>
             <View className="flex-1 items-center justify-end bg-[rgba(0,0,0,0.6)] pb-4">
-              <Text className="font-semibold text-lg text-white">Leia o código de barras</Text>
+              <Text className="font-bold text-lg text-white">Posicione o código de barras</Text>
             </View>
 
-            <View className="h-52 flex-row">
+            <View className="h-[20%] flex-row">
               <View className="flex-1 bg-[rgba(0,0,0,0.6)]" />
 
               <View className="w-[80%] bg-transparent" />
@@ -127,11 +127,6 @@ function Index() {
             </View>
 
             <View className="flex-1 items-center justify-center bg-[rgba(0,0,0,0.6)]">
-              <TouchableOpacity
-                onPress={() => setModalIsVisible(false)}
-                className="rounded-lg bg-primary px-5 py-3">
-                <Text className="text-center font-bold text-white">Cancelar</Text>
-              </TouchableOpacity>
             </View>
           </View>
         </View>

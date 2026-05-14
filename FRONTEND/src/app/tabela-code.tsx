@@ -9,108 +9,133 @@ import {
   Alert,
 } from 'react-native';
 import { useEffect, useState } from 'react';
-import { useLocalSearchParams } from 'expo-router';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useCodbar } from '@/context/CodbarContext';
-import Slider from '@/components/Slider';
-import { InfoTabela } from '@/data/SliderData';
+import Slider from '@/components/tabela-code/Slider';
+import { ItemTabela } from '@/data/SliderData';
 import { useChangeEtapa } from '@/hooks/button.hook';
+import { useTabela } from '@/hooks/tabela.hook';
+import * as ScreenOrientation from 'expo-screen-orientation';
+
+//material Icon Expo
+import Entypo from '@expo/vector-icons/Entypo'; //iniciar
+import AntDesign from '@expo/vector-icons/AntDesign'; //pausar
+import Fontisto from '@expo/vector-icons/Fontisto'; //retomar
+import FontAwesome5 from '@expo/vector-icons/FontAwesome5'; //finalizar
 
 function Tabela_Code() {
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
+  const { getTabela } = useTabela();
   const { postIniciar, postFinalizar, postPausar, postRetomar, postPularEtapa } = useChangeEtapa();
-
   const params = useLocalSearchParams();
   const nomeOperador = params.nomeOperador as string;
   const nomeProduto = params.nomeProduto as string;
+  const tabelaInicialString = params.tabelaInicial as string;
+
+  const etapasIniciais = tabelaInicialString ? JSON.parse(tabelaInicialString) : [];
   const { codBar, senha, numpcf, posicao, limparContext } = useCodbar();
-
-  const primeiroItem = InfoTabela[0];
-  const etapaAtual = InfoTabela.find((item) => item.posicao === posicao) || primeiroItem;
-
-  const cadmot = 0;
-
   const [modalPausaVisible, setModalPausaVisible] = useState(false);
+  const [infoTabela, setInfoTabela] = useState<ItemTabela[]>(etapasIniciais);
+  const [atualizar, setAtualizar] = useState(0);
+  
+
+  const primeiroItem = infoTabela[0];
+  const etapaAtual = infoTabela.find((item) => item.posicao === posicao) || primeiroItem;
+
+
+  const situacao = etapaAtual?.situac.trim();
+
+  const botaoDesativadoInciar = ['FINALIZADA', 'EM PRODUÇÃO', 'PULADA'].includes(situacao);
+  const botaoDesativadoPausar = !['EM PRODUÇÃO'].includes(situacao);
+  const botaoDesativadoRetomar = !['PAUSADA'].includes(situacao);
+  const botaoDesativadoPularEtapa = ['FINALIZADA', 'CANCELADA', 'PULADA'].includes(situacao);
+  const botaoDesativadoFinalizar = !['EM PRODUÇÃO'].includes(situacao);
+
+  useEffect(() => {
+    if (numpcf) {
+      getTabela(numpcf)
+        .then((dados) => {
+          setInfoTabela(dados);
+        })
+        .catch((err) => console.error('Erro ao carregar tabela', err));
+    }
+  }, [numpcf, atualizar]);
+
+  if (!infoTabela || infoTabela.length === 0) {
+    return (
+      <View className="flex-1 items-center justify-center">
+        <Text>Aguardando dados da produção...</Text>
+      </View>
+    );
+  }
 
 
   function handleIniciar() {
-    if (!verificarIniciar()) return;
-
-    postIniciar(etapaAtual.numpcf, etapaAtual.posicao, nomeOperador, cadmot)
+    postIniciar(numpcf, posicao, nomeOperador, 0, etapaAtual.etapa)
       .then(() => {
         Alert.alert('Sucesso', 'Produção iniciada!');
+        setAtualizar((prev) => prev + 1);
       })
-      .catch(() => Alert.alert('Erro', 'Não foi possível iniciar ' ));
+      .catch(() => Alert.alert('Aviso', 'Não foi possível iniciar '));
   }
 
   function handlePausar(cadmot: number) {
-    postPausar(etapaAtual.numpcf, etapaAtual.posicao, nomeOperador, cadmot)
+    postPausar(numpcf, posicao, nomeOperador, cadmot, etapaAtual.etapa)
       .then(() => {
-        Alert.alert('Sucesso', 'Etapa pausada.');
+        setModalPausaVisible(false);
+        Alert.alert('Sucesso', 'Etapa pausada.' + cadmot);
+        setAtualizar((prev) => prev + 1);
       })
       .catch(() => Alert.alert('Erro', 'Falha ao pausar.'));
   }
 
   function handleRetomar() {
-    if (etapaAtual.situac !== 'PAUSADA') {
-      Alert.alert('Aviso', 'Só é possível retomar uma etapa que está pausada.');
-      return;
-    }
-
-    postRetomar(etapaAtual.numpcf, etapaAtual.posicao, nomeOperador, cadmot)
+    postRetomar(numpcf, posicao, nomeOperador, 0, etapaAtual.etapa)
       .then(() => {
         Alert.alert('Sucesso', 'Produção retomada!');
+        setAtualizar((prev) => prev + 1);
       })
       .catch(() => Alert.alert('Erro', 'Falha ao retomar produção.'));
   }
 
-  function handleFinalizar(){
-    postFinalizar(etapaAtual.numpcf, etapaAtual.posicao, nomeOperador, cadmot)
+  function handleFinalizar() {
+    postFinalizar(numpcf, posicao, nomeOperador, 0, etapaAtual.etapa)
       .then(() => {
-        Alert.alert('Sucesso', 'Produção retomada!');
-      })
-      .catch(() => Alert.alert('Erro', 'Falha ao retomar produção.'));
-  }
-  function handleClose(){
-    
-  }
-
-  function handlePularEtapa(){
-    if (etapaAtual.situac !== 'FINALIZADA') {
-      Alert.alert('Aviso', 'Só é possível pular uma etapa ja finalizada!');
-      return;
-    }
-
-    postPularEtapa(etapaAtual.numpcf, etapaAtual.posicao, nomeOperador, cadmot)
-      .then(() => {
-        Alert.alert('Sucesso', 'Produção retomada!');
+        Alert.alert('Sucesso', 'Produção finalizada!');
+        setAtualizar((prev) => prev + 1);
       })
       .catch(() => Alert.alert('Erro', 'Falha ao retomar produção.'));
   }
 
+  function handlePularEtapa() {
+    postPularEtapa(numpcf, posicao, nomeOperador, etapaAtual.etapa, 0)
+      .then(() => {
+        Alert.alert('Sucesso', 'Etapa Pulada!');
+      })
+      .catch(() => Alert.alert('Erro', 'Falha ao pular Etapa.'));
+  }
 
-  function verificarIniciar() {
-    if (etapaAtual.situac === 'FINALIZADA') {
-      Alert.alert('Erro', 'Esta etapa já foi finalizada.');
-      return false;
-    }
-    if (etapaAtual.situac === 'EM PRODUÇÃO') {
-      Alert.alert('Aviso', 'A produção já está em produção.');
-      return false;
-    }
-    return true; 
+  function handleAdicionarEtapa() {
+    router.push({
+      pathname: '/montando-pcf',
+    });
+  }
+
+  function handleClose() {
+    limparContext();
+    router.replace('/');
   }
 
   function verificarPausar() {
-    if (etapaAtual.situac === 'EM PRODUÇÃO') {
+    console.log(situacao);
+    if (situacao == 'EM PRODUÇÃO') {
       setModalPausaVisible(true);
     } else {
-      Alert.alert('Aviso', 'Só é possível pausar se a etapa estiver EM PRODUÇÃO!');
+      Alert.alert('Aviso', 'Só é possível pausar se a etapa estiver em produção.');
     }
   }
-  //Chamar o useEffect quando estes valores mudarem
-  useEffect(() => {}, [etapaAtual.descri, etapaAtual.situac, etapaAtual.posicao]);
+
 
   const conteudo_tabela = (
     <View className="flex-1 px-12 py-16 mobile:py-12">
@@ -203,58 +228,76 @@ function Tabela_Code() {
       </View>
 
       {/*Mobile */}
-      <Slider />
+      <Slider dados={infoTabela}/>
 
       {/*Buttons*/}
+      <View className="flex flex-col tablet:flex-row">
+        <View className="mt-20 flex-row justify-between tablet:mt-12 tablet:flex-1">
+          <TouchableOpacity
+            className={`m-1 h-12 flex-1 items-center justify-center rounded-md ${
+              botaoDesativadoInciar ? 'bg-gray-300' : 'bg-primary'
+            }`}
+            onPress={handleIniciar}
+            disabled={botaoDesativadoInciar}>
+            <Text className="text-center text-[1.2rem] mobile:text-[1rem]">
+              <Entypo name="controller-jump-to-start" size={24} color="white" />
+            </Text>
+          </TouchableOpacity>
 
-      <View className="mt-20 flex-row justify-between tablet:mt-16">
-        <TouchableOpacity
-          className="m-1 h-12 flex-1 items-center justify-center rounded-md bg-primary"
-          onPress={handleIniciar}>
-          <Text className="text-center font-semibold text-[1.2rem] text-white mobile:text-[1rem]">
-            Iniciar
-          </Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            className={`m-1 h-12 flex-1 items-center justify-center rounded-md ${
+              botaoDesativadoPausar ? 'bg-gray-300' : 'bg-primary'
+            }`}
+            onPress={verificarPausar}
+            disabled={botaoDesativadoPausar}>
+            <Text className="text-center text-[1.2rem] mobile:text-[1rem]">
+              <AntDesign name="pause" size={24} color="white" />
+            </Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          className="m-1 h-12 flex-1 items-center justify-center rounded-md bg-primary"
-          onPress={verificarPausar}>
-          <Text className="text-center font-semibold text-[1.2rem] text-white mobile:text-[1rem]">
-            Pausar
-          </Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            className={`m-1 h-12 flex-1 items-center justify-center rounded-md ${
+              botaoDesativadoRetomar ? 'bg-gray-300' : 'bg-primary'
+            }`}
+            onPress={handleRetomar}
+            disabled={botaoDesativadoRetomar}>
+            <Text className="text-center font-semibold text-[1.2rem] text-white mobile:text-[1rem]">
+              <Fontisto name="arrow-return-left" size={24} color="white" />
+            </Text>
+          </TouchableOpacity>
+        </View>
 
-        <TouchableOpacity
-          className="m-1 h-12 flex-1 items-center justify-center rounded-md bg-primary"
-          onPress={handleRetomar}>
-          <Text className="text-center font-semibold text-[1.2rem] text-white mobile:text-[1rem]">
-            Retomar
-          </Text>
-        </TouchableOpacity>
-      </View>
+        <View className="tablet:flex-1 flex-row">
+          <TouchableOpacity
+            className={`m-1 h-12 flex-1 items-center justify-center rounded-md ${
+              botaoDesativadoFinalizar ? 'bg-gray-300' : 'bg-primary'
+            }`}
+            onPress={handleFinalizar}
+            disabled={botaoDesativadoFinalizar}>
+            <Text className="text-center font-semibold text-[1.2rem] text-white mobile:text-[1rem]">
+              <FontAwesome5 name="stop" size={24} color="white" />
+            </Text>
+          </TouchableOpacity>
 
-      <View className="flex-row">
-        <TouchableOpacity
-          className="m-1 h-12 flex-1 items-center justify-center rounded-md bg-primary"
-          onPress={handleFinalizar}>
-          <Text className="text-center font-semibold text-[1.2rem] text-white mobile:text-[1rem]">
-            Finalizar
-          </Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            className={`m-1 h-12 flex-1 items-center justify-center rounded-md ${
+              botaoDesativadoPularEtapa ? 'bg-gray-300' : 'bg-primary'
+            }`}
+            onPress={handlePularEtapa}
+            disabled={botaoDesativadoPularEtapa}>
+            <Text className="text-center font-semibold text-[1.2rem] text-white mobile:text-[1rem]">
+              Pular Etapa
+            </Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity className="m-1 h-12 flex-1 items-center justify-center rounded-md bg-primary"
-        onPress={handlePularEtapa}>
-          <Text className="text-center font-semibold text-[1.2rem] text-white mobile:text-[1rem]">
-            Pular Etapa
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity className="m-1 h-12 flex-1 items-center justify-center rounded-md bg-primary"
-        onPress={handleClose}>
-          <Text className="text-center font-semibold text-[1.2rem] text-white mobile:text-[1rem]">
-            Sair
-          </Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            className="m-1 h-12 flex-1 items-center justify-center rounded-md bg-primary"
+            onPress={handleClose}>
+            <Text className="text-center font-semibold text-[1.2rem] text-white mobile:text-[1rem]">
+              Voltar ao leitor
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView
@@ -281,25 +324,25 @@ function Tabela_Code() {
           </Text>
         </View>
 
-        {InfoTabela?.map((item, index) => (
+        {infoTabela?.map((item, index) => (
           <View key={index} className="flex flex-row bg-white pt-2 backdrop-blur-md">
-            <Text className="flex-1 border-b-[0.4px] border-[#8E8681]/60 pb-3 text-center font-semibold text-[1.1rem] text-text_primary">
+            <Text className="flex-1 border-b-[0.4px] border-[#8E8681]/60 pb-3 text-center font-semibold text-[1.1rem] text-black">
               {item.descri}
             </Text>
-            <Text className="flex-1 border-b-[0.4px] border-[#8E8681]/60 pb-3 text-center font-semibold text-[1.1rem] text-text_primary">
+            <Text className="flex-1 border-b-[0.4px] border-[#8E8681]/60 pb-3 text-center font-semibold text-[1.1rem] text-black">
               {item.situac}
             </Text>
-            <Text className="flex-1 border-b-[0.4px] border-[#8E8681]/60 pb-3 text-center font-semibold text-[1.1rem] text-text_primary">
+            <Text className="flex-1 border-b-[0.4px] border-[#8E8681]/60 pb-3 text-center font-semibold text-[1.1rem] text-black">
               {item.operador}
             </Text>
-            <Text className="flex-1 border-b-[0.4px] border-[#8E8681]/60 pb-3 text-center font-semibold text-[1.1rem] text-text_primary">
+            <Text className="flex-1 border-b-[0.4px] border-[#8E8681]/60 pb-3 text-center font-semibold text-[1.1rem] text-black">
               {item.data}
             </Text>
-            <Text className="flex-1 border-b-[0.4px] border-[#8E8681]/60 pb-3 text-center font-semibold text-[1.1rem] text-text_primary">
+            <Text className="flex-1 border-b-[0.4px] border-[#8E8681]/60 pb-3 text-center font-semibold text-[1.1rem] text-black">
               {item.hora}
             </Text>
-            <Text className="flex-1 border-b-[0.4px] border-[#8E8681]/60 pb-3 text-center font-semibold text-[1.1rem] text-text_primary">
-              {item.duracao}min
+            <Text className="flex-1 border-b-[0.4px] border-[#8E8681]/60 pb-3 text-center font-semibold text-[1.1rem] text-black">
+              {item.duracao}
             </Text>
           </View>
         ))}
@@ -307,7 +350,9 @@ function Tabela_Code() {
 
       {/*Button Adicionar Etapa*/}
       <View className="mt-8 flex-row justify-end">
-        <TouchableOpacity className="m-1 h-12 w-full items-center justify-center rounded-md bg-white shadow-lg mobile:w-52">
+        <TouchableOpacity
+          className="m-1 h-12 w-full items-center justify-center rounded-md bg-white shadow-lg mobile:w-52"
+          onPress={handleAdicionarEtapa}>
           <Text className="font-semibold text-[1.2rem] text-text_primary mobile:text-[1rem]">
             Adicionar Etapa
           </Text>
@@ -327,18 +372,18 @@ function Tabela_Code() {
 
             <View className="gap-2">
               {[
-                { id: 1, txt: 'Ida ao banheiro' },
-                { id: 2, txt: 'Priorizando outro PCF' },
-                { id: 3, txt: 'Troca de fitas' },
-                { id: 4, txt: 'Manutenção da máquina' },
-                { id: 5, txt: 'Almoço' },
-                { id: 6, txt: 'Fim do expediente' },
+                { id: 1, motivo: 'Ida ao banheiro' },
+                { id: 2, motivo: 'Priorizando outro PCF' },
+                { id: 3, motivo: 'Troca de fitas' },
+                { id: 4, motivo: 'Manutenção da máquina' },
+                { id: 5, motivo: 'Almoço' },
+                { id: 6, motivo: 'Fim do expediente' },
               ].map((item) => (
                 <TouchableOpacity
                   key={item.id}
                   className="rounded-lg bg-gray-100 p-4 active:bg-gray-200"
                   onPress={() => handlePausar(item.id)}>
-                  <Text className="text-center font-medium">{item.txt}</Text>
+                  <Text className="text-center font-medium">{item.motivo}</Text>
                 </TouchableOpacity>
               ))}
             </View>

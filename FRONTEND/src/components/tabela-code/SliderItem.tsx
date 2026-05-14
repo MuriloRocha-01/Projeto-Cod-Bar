@@ -9,17 +9,11 @@ type Props = {
 };
 
 const SliderItem = ({ item, index }: Props) => {
-  const { posicao } = useCodbar(); // Pega a posição vinda do scanner (ex: 2)
-
-  // Verifica se este item é a etapa atual baseada na posição
-  // Usamos item.posicao pois ela representa a ordem real no processo
+  const { posicao } = useCodbar(); 
   const isEtapaAtual = item.posicao === posicao;
 
   return (
     <View className="w-screen justify-center px-12">
-      {/* Aplicamos a borda condicionalmente: 
-                Se for a etapa atual, adicionamos 'border-2 border-[#F87E2C]' 
-            */}
       <View
         className={`flex flex-col gap-6 rounded-xl bg-white px-12 text-start shadow-lg ${isEtapaAtual ? 'border-4 border-primary' : 'border border-transparent'}`}>
         {isEtapaAtual && (

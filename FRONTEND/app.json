@@ -23,7 +23,7 @@
       ],
       "expo-router"
     ],
-    "orientation": "portrait",
+    "orientation": "default",
     "userInterfaceStyle": "light",
     "splash": {
       "resizeMode": "contain",

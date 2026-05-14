@@ -9,12 +9,5 @@ export interface ItemTabela {
   duracao: number;
   descri: string;
   operador: string | null;
+  etapa:number;
 }
-
-// 1. Use 'let' para permitir que a função setSliderData troque o valor
-// 2. Mantenha o nome InfoTabela como você deseja
-export let InfoTabela: ItemTabela[] = [];
-
-export const setSliderData = (novosDados: ItemTabela[]) => {
-  InfoTabela = novosDados;
-};

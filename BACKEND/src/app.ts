@@ -6,6 +6,7 @@ import Operadorrouter from './routes/operador.route.js';
 import CodBarrouter from './routes/codbar.route.js';
 import Tabelarouter from './routes/tabela.route.js';
 import ButtonRouter from './routes/buttons.route.js';
+import InclusaoEtapa from './routes/inclusaoEtapa.route.js';
 const app = express();
 
 dotenv.config(); 
@@ -23,6 +24,8 @@ app.use('/codbar', CodBarrouter);
 app.use('/tabela', Tabelarouter);
 
 app.use('/button', ButtonRouter)
+
+app.use('/inclusaoEtapa', InclusaoEtapa)
 
 app.use((req,res) =>{
     res.status(404).json({

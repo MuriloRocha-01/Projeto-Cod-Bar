@@ -9,4 +9,6 @@ router.get('/', (req, res) => tabelaController.getTabela(req, res));
 
 router.get('/produto', (req, res) => tabelaController.getNomeProduto(req,res));
 
+router.get('/etapa', (req, res) => tabelaController.getTabelaEtapa(req,res))
+
 export default router;

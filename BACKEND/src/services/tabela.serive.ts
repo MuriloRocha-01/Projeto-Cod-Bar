@@ -13,14 +13,23 @@ export class TabelaService {
     }
 
     async getNomeProduto(numpcf:number){
-        const tabela = await this.repository.getNomeProduto(numpcf)
+        const nomeProduto = await this.repository.getNomeProduto(numpcf)
 
-        if(!tabela){
-            throw new Error('Tabela não encontrada')
+        if(!nomeProduto){
+            throw new Error('NomeProduto não encontrada')
 
         }
-        return tabela 
+        return nomeProduto
     }   
+    async getTabelaEtapa(numpcf:number){
+        const tabelaEtapa = await this.repository.getTabelaEtapa(numpcf)
+
+        if(!tabelaEtapa){
+            throw new Error('Tabela Etapa não encontrada')
+
+        }
+        return tabelaEtapa 
+    }
 
 
 }

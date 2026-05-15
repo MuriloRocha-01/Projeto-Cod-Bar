@@ -1,11 +1,19 @@
-import { View, Text, TextInput, TouchableOpacity, Alert, Modal, ActivityIndicator } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  Alert,
+  Modal,
+  ActivityIndicator,
+} from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { useCodbar } from '@/context/CodbarContext';
 import { useState } from 'react';
 import { router } from 'expo-router';
 import { useSenha } from '@/hooks/senha.hook';
 import { useTabela } from '@/hooks/tabela.hook';
-
+import ModalCarregamento from '@/components/modalCarregamento/ModalCarregamento';
 
 function Code_bar_Senha() {
   const { getOperador } = useSenha();
@@ -20,38 +28,38 @@ function Code_bar_Senha() {
 
   const { SaveContext } = useCodbar();
 
-  const handleConfirm = (password:string) => {
-    if (!password) {
-      Alert.alert('É necessario que você digite a senha ');
-      return;
-    } else {
-      setLoading(true);
-      getOperador(password)
-        .then((response) => {
-          if (!response) {
-            Alert.alert('Senha incorreta, tente novamente');
-            return;
-          }
-          //numpcf estou pegando do SELECT da tabela, e a posicao estou pegando do codigo de barras
-          const numpcf = Number(valornumpcf);
-          const posicao = Number(codBar.slice(-2));
-          SaveContext(codBar, password, numpcf, posicao);
+  if (loading) {
+    return <ModalCarregamento />;
+  }
 
-          //Pegar a tabela e redirecionar para a tela de tabela
-          montandoTabela(numpcf, response);
-        })
-        .catch((error) => {
-          Alert.alert('Operador não encontrado, tente novamente', error.message);
+  const handleConfirm = (password: string) => {
+    setLoading(true);
+    getOperador(password)
+      .then((response) => {
+        if (!response) {
+          Alert.alert('Senha incorreta, tente novamente');
           return;
-        }).finally(()=>{
-          setTimeout(() => {
-          setLoading(false); // Desativa o loading
-          }, 2000);
-        });
-    }
+        }
+        //numpcf estou pegando do SELECT da tabela, e a posicao estou pegando do codigo de barras
+        const numpcf = Number(valornumpcf);
+        const posicao = Number(codBar.slice(-2));
+        SaveContext(codBar, password, numpcf, posicao);
+
+        //Pegar a tabela e redirecionar para a tela de tabela
+        montandoTabela(numpcf, response);
+      })
+      .catch(() => {
+        Alert.alert('Aviso', 'Operador não encontrado ou senha não encontrada');
+        return;
+      })
+      .finally(() => {
+        setTimeout(() => {
+          setLoading(false);
+        }, 500);
+      });
   };
 
-function montandoTabela(numpcf: number, response: any) {
+  function montandoTabela(numpcf: number, response: any) {
     getTabela(numpcf)
       .then((tabela) => {
         if (!tabela || tabela.length === 0) {
@@ -63,12 +71,12 @@ function montandoTabela(numpcf: number, response: any) {
         return getNome(numpcf).then((produtoResponse) => {
           const nomeProduto = produtoResponse?.nompro?.trim() || 'Não identificado';
           const nomeOperador = response?.operador?.trim() || 'Operador não identificado';
-          router.push({
+          router.replace({
             pathname: '/tabela-code',
             params: {
               nomeOperador: nomeOperador,
               nomeProduto: nomeProduto,
-              tabelaInicial: JSON.stringify(tabela)
+              tabelaInicial: JSON.stringify(tabela),
             },
           });
         });
@@ -92,22 +100,18 @@ function montandoTabela(numpcf: number, response: any) {
         secureTextEntry={true}
         keyboardType="numeric"
         value={passwordInput}
-        onChangeText={(text)=>{
+        onChangeText={(text) => {
           const apenasNumeros = text.replace(/[^0-9]/g, '');
           setPasswordInput(apenasNumeros);
-          if(apenasNumeros.length === 4){
-            handleConfirm(apenasNumeros)
+
+          // Adicione a verificação !loading para não disparar duplicado
+          if (apenasNumeros.length === 4 && !loading) {
+            handleConfirm(apenasNumeros);
           }
         }}
       />
 
       <Text>Codigo de barras : {codBar} </Text>
-
-      <Modal visible={loading} transparent={true} animationType="fade" statusBarTranslucent={true}>
-        <View className="flex-1 items-center justify-center bg-white">
-          <ActivityIndicator size="large" color="#000" />
-        </View>
-      </Modal>
     </View>
   );
 }

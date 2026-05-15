@@ -11,23 +11,23 @@ import {
 import { useEffect, useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCodbar } from '@/context/CodbarContext';
-import Slider from '@/components/tabela-code/Slider';
 import { ItemTabela } from '@/data/SliderData';
 import { useChangeEtapa } from '@/hooks/button.hook';
 import { useTabela } from '@/hooks/tabela.hook';
-import * as ScreenOrientation from 'expo-screen-orientation';
 
 //material Icon Expo
 import Entypo from '@expo/vector-icons/Entypo'; //iniciar
 import AntDesign from '@expo/vector-icons/AntDesign'; //pausar
 import Fontisto from '@expo/vector-icons/Fontisto'; //retomar
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5'; //finalizar
+import ModalCarregamento from '@/components/modalCarregamento/ModalCarregamento';
 
 function Tabela_Code() {
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
   const { getTabela } = useTabela();
   const { postIniciar, postFinalizar, postPausar, postRetomar, postPularEtapa } = useChangeEtapa();
+  
   const params = useLocalSearchParams();
   const nomeOperador = params.nomeOperador as string;
   const nomeProduto = params.nomeProduto as string;
@@ -38,11 +38,9 @@ function Tabela_Code() {
   const [modalPausaVisible, setModalPausaVisible] = useState(false);
   const [infoTabela, setInfoTabela] = useState<ItemTabela[]>(etapasIniciais);
   const [atualizar, setAtualizar] = useState(0);
-  
 
   const primeiroItem = infoTabela[0];
   const etapaAtual = infoTabela.find((item) => item.posicao === posicao) || primeiroItem;
-
 
   const situacao = etapaAtual?.situac.trim();
 
@@ -53,23 +51,23 @@ function Tabela_Code() {
   const botaoDesativadoFinalizar = !['EM PRODUÇÃO'].includes(situacao);
 
   useEffect(() => {
-    if (numpcf) {
-      getTabela(numpcf)
-        .then((dados) => {
-          setInfoTabela(dados);
-        })
-        .catch((err) => console.error('Erro ao carregar tabela', err));
-    }
-  }, [numpcf, atualizar]);
+  if (numpcf) {
+    getTabela(numpcf)
+      .then((dados) => {
+        setInfoTabela(Array.isArray(dados) ? dados : []);
+      })
+      .catch((err) => {
+        console.error('Erro ao carregar tabela', err);
+        setInfoTabela([]); // Evita que o estado fique com lixo
+      });
+  }
+}, [numpcf, atualizar]);
 
   if (!infoTabela || infoTabela.length === 0) {
     return (
-      <View className="flex-1 items-center justify-center">
-        <Text>Aguardando dados da produção...</Text>
-      </View>
+      <ModalCarregamento/>
     );
   }
-
 
   function handleIniciar() {
     postIniciar(numpcf, posicao, nomeOperador, 0, etapaAtual.etapa)
@@ -128,14 +126,12 @@ function Tabela_Code() {
   }
 
   function verificarPausar() {
-    console.log(situacao);
     if (situacao == 'EM PRODUÇÃO') {
       setModalPausaVisible(true);
     } else {
       Alert.alert('Aviso', 'Só é possível pausar se a etapa estiver em produção.');
     }
   }
-
 
   const conteudo_tabela = (
     <View className="flex-1 px-12 py-16 mobile:py-12">
@@ -145,7 +141,6 @@ function Tabela_Code() {
         </Text>
       </View>
 
-      {/*Linha 01*/}
 
       <View className="mt-8 flex-col gap-4 mobile:flex-row mobile:gap-6">
         <View className="flex-1 gap-2 mobile:gap-1">
@@ -200,7 +195,7 @@ function Tabela_Code() {
 
       {/*Linha 02*/}
 
-      <View className="mt-4 block gap-4 mobile:flex mobile:gap-0">
+      <View className="mt-4 flex mobile:flex-row flex-col gap-0 tablet:gap-8">
         <View className="flex-1 gap-2 mobile:flex-[10] mobile:gap-1">
           <Text className="text-center font-medium text-[1.3rem] text-[#414141] mobile:text-[1.1rem]">
             Produto Final
@@ -227,12 +222,9 @@ function Tabela_Code() {
         </View>
       </View>
 
-      {/*Mobile */}
-      <Slider dados={infoTabela}/>
-
       {/*Buttons*/}
       <View className="flex flex-col tablet:flex-row">
-        <View className="mt-20 flex-row justify-between tablet:mt-12 tablet:flex-1">
+        <View className="mt-20 flex-row justify-between tablet:mt-8 tablet:flex-1">
           <TouchableOpacity
             className={`m-1 h-12 flex-1 items-center justify-center rounded-md ${
               botaoDesativadoInciar ? 'bg-gray-300' : 'bg-primary'
@@ -267,7 +259,7 @@ function Tabela_Code() {
           </TouchableOpacity>
         </View>
 
-        <View className="tablet:flex-1 flex-row">
+        <View className="justify-between flex-row tablet:flex-1 tablet:mt-8">
           <TouchableOpacity
             className={`m-1 h-12 flex-1 items-center justify-center rounded-md ${
               botaoDesativadoFinalizar ? 'bg-gray-300' : 'bg-primary'
@@ -301,51 +293,61 @@ function Tabela_Code() {
       </View>
 
       <ScrollView
-        className="mt-8 hidden rounded-xl bg-white drop-shadow-lg mobile:flex tablet:mt-12"
-        stickyHeaderIndices={[0]}>
-        <View className="flex flex-row bg-white pt-2 backdrop-blur-md">
-          <Text className="flex-1 border-b-[0.4px] border-[#8E8681]/60 pb-3 text-center font-semibold text-[1.1rem] text-text_primary">
-            Etapa
-          </Text>
-          <Text className="flex-1 border-b-[0.4px] border-[#8E8681]/60 pb-3 text-center font-semibold text-[1.1rem] text-text_primary">
-            Situação
-          </Text>
-          <Text className="flex-1 border-b-[0.4px] border-[#8E8681]/60 pb-3 text-center font-semibold text-[1.1rem] text-text_primary">
-            Operador
-          </Text>
-          <Text className="flex-1 border-b-[0.4px] border-[#8E8681]/60 pb-3 text-center font-semibold text-[1.1rem] text-text_primary">
-            Data
-          </Text>
-          <Text className="flex-1 border-b-[0.4px] border-[#8E8681]/60 pb-3 text-center font-semibold text-[1.1rem] text-text_primary">
-            Horário
-          </Text>
-          <Text className="flex-1 border-b-[0.4px] border-[#8E8681]/60 pb-3 text-center font-semibold text-[1.1rem] text-text_primary">
-            Tempo
-          </Text>
-        </View>
-
-        {infoTabela?.map((item, index) => (
-          <View key={index} className="flex flex-row bg-white pt-2 backdrop-blur-md">
-            <Text className="flex-1 border-b-[0.4px] border-[#8E8681]/60 pb-3 text-center font-semibold text-[1.1rem] text-black">
-              {item.descri}
-            </Text>
-            <Text className="flex-1 border-b-[0.4px] border-[#8E8681]/60 pb-3 text-center font-semibold text-[1.1rem] text-black">
-              {item.situac}
-            </Text>
-            <Text className="flex-1 border-b-[0.4px] border-[#8E8681]/60 pb-3 text-center font-semibold text-[1.1rem] text-black">
-              {item.operador}
-            </Text>
-            <Text className="flex-1 border-b-[0.4px] border-[#8E8681]/60 pb-3 text-center font-semibold text-[1.1rem] text-black">
-              {item.data}
-            </Text>
-            <Text className="flex-1 border-b-[0.4px] border-[#8E8681]/60 pb-3 text-center font-semibold text-[1.1rem] text-black">
-              {item.hora}
-            </Text>
-            <Text className="flex-1 border-b-[0.4px] border-[#8E8681]/60 pb-3 text-center font-semibold text-[1.1rem] text-black">
-              {item.duracao}
-            </Text>
+        className="mt-12 rounded-xl bg-white drop-shadow-lg"
+        contentContainerStyle={{ flexGrow: 1 }}
+        horizontal={true}
+        showsHorizontalScrollIndicator={true}
+        persistentScrollbar={true}
+        indicatorStyle="black">
+        <View className="min-w-[800px] tablet:min-w-full ">
+          <View className="flex-row border-b-2 border-gray-200 bg-gray-50 py-4">
+            <Text className=" flex-1 w-0 text-[1.3rem] w-36 text-center font-bold text-primary">Etapa</Text>
+            <Text className=" flex-1 w-0 text-[1.3rem] w-36 text-center font-bold text-primary">Situação</Text>
+            <Text className=" flex-1 w-0 text-[1.3rem] w-36 text-center font-bold text-primary">Operador</Text>
+            <Text className="flex-1 w-0 text-[1.3rem] w-28 text-center font-bold text-primary">Data</Text>
+            <Text className="flex-1 w-0 text-[1.3rem] w-28 text-center font-bold text-primary">Hora</Text>
+            <Text className="flex-1 w-0 text-[1.3rem] w-24 text-center font-bold text-primary">Tempo</Text>
           </View>
-        ))}
+
+          <ScrollView
+            className="min-h-[50vh] tablet:max-h-[60vh]"
+            persistentScrollbar={true}
+            showsVerticalScrollIndicator={true}
+            indicatorStyle="black">
+            {infoTabela?.map((item, index) => {
+              const isEtapaAtiva = item.posicao === posicao;
+
+              return (
+                <View
+                  key={index}
+                  className={`flex flex-row items-center border-b border-gray-100 py-4 ${
+                    isEtapaAtiva ? 'bg-gray-100' : 'bg-white'
+                  }`}>
+                  <Text
+                    className="tablet:flex-1 tablet:w-0 w-40 text-center font-semibold ">
+                    {item.descri}
+                  </Text>
+
+                  <Text
+                    className={"tablet:flex-1 tablet:w-0 w-48 text-center font-semibold "}>
+                    {item.situac?.trim()}
+                  </Text>
+
+                  <Text
+                    className="tablet:flex-1 tablet:w-0 w-40 px-1 text-center font-semibold text-black"
+                    numberOfLines={1}>
+                    {item.operador?.trim() || 'Aguardando'}
+                  </Text>
+
+                  <Text className="tablet:flex-1 tablet:w-0 w-40 text-center font-semibold text-black">{item.data}</Text>
+                  <Text className="tablet:flex-1 tablet:w-0 w-40 text-center font-semibold text-black">{item.hora}</Text>
+                  <Text className="tablet:flex-1 tablet:w-0 w-40 text-center font-semibold text-black">{item.duracao}</Text>
+                  
+                </View>
+              );
+            })}
+          </ScrollView>
+        </View>
       </ScrollView>
 
       {/*Button Adicionar Etapa*/}
@@ -400,7 +402,7 @@ function Tabela_Code() {
   if (isMobile) {
     return <ScrollView className="flex-1 bg-[#F5F5F7]">{conteudo_tabela}</ScrollView>;
   } else {
-    return <View className="flex-1 bg-[#F5F5F7]">{conteudo_tabela}</View>;
+    return <View className="flex-1 bg-[#F5F5F7] py-6">{conteudo_tabela}</View>;
   }
 }
 

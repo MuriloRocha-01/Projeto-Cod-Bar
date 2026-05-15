@@ -25,5 +25,17 @@ export const useTabela = () => {
         }
     };
 
-    return { getTabela, getNome };
+    const getabelaEtapa = async (numpcf: number) => {
+        try {
+            const response = await api.get('/tabela/etapa', { params: { numpcf } });
+            return response.data;
+        }    
+        catch (error) {
+            console.error('Erro ao obter tabelaEtapa:', error);
+            throw error;
+        }
+    };
+
+    
+    return { getTabela, getNome, getabelaEtapa };
 };
